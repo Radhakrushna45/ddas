@@ -302,7 +302,7 @@ function Dashboard() {
             <div>
               <h2 className="text-lg font-semibold">Registry</h2>
               <p className="text-xs text-muted-foreground">
-                All downloads across all users · <Users className="inline h-3 w-3" /> {Object.keys(profiles).length} contributors
+                Your private download registry · <Users className="inline h-3 w-3" /> visible only to you
               </p>
             </div>
             <div className="relative w-full max-w-xs">
