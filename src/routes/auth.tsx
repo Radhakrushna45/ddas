@@ -45,14 +45,24 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     const redirectUrl = `${window.location.origin}/dashboard`;
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: redirectUrl, data: { display_name: name || email.split("@")[0] } },
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Account created — check your email to confirm.");
+    if (error) {
+      if (error.message.toLowerCase().includes("already") || (error as any).code === "user_already_exists") {
+        return toast.error("This email is already registered. Please sign in instead.");
+      }
+      return toast.error(error.message);
+    }
+    if (data.session) {
+      toast.success("Account created — welcome!");
+      navigate({ to: "/dashboard" });
+    } else {
+      toast.success("Account created — check your email to confirm.");
+    }
   };
 
   return (
