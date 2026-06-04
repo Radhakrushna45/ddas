@@ -184,16 +184,18 @@ function Dashboard() {
   const displayName = me?.display_name || session.user.email?.split("@")[0] || "User";
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
+    <div className="relative min-h-screen overflow-hidden bg-background">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[400px] bg-gradient-hero" />
+
+      <header className="relative z-10 border-b border-border/60 bg-card/70 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
               <Database className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-sm font-semibold">DDAS</div>
-              <div className="text-xs text-muted-foreground">Signed in as {displayName}</div>
+              <div className="text-sm font-semibold tracking-tight">DDAS</div>
+              <div className="text-xs text-muted-foreground">Signed in as <span className="font-medium text-foreground">{displayName}</span></div>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={signOut}>
@@ -202,33 +204,41 @@ function Dashboard() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl space-y-6 px-6 py-8">
+      <main className="relative z-10 mx-auto max-w-7xl space-y-6 px-6 py-8">
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-4 animate-fade-up">
           <StatCard icon={FileText} label="Total downloads" value={stats.total.toString()} />
           <StatCard icon={CheckCircle2} label="Unique datasets" value={stats.unique.toString()} />
           <StatCard icon={AlertTriangle} label="Duplicate groups" value={stats.duplicateGroups.toString()} tone={stats.duplicateGroups ? "warning" : "default"} />
           <StatCard icon={HardDrive} label="Storage wasted" value={formatBytes(stats.wasted)} tone={stats.wasted ? "warning" : "default"} />
         </div>
 
-        {/* Register */}
-        <section className="rounded-xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold">Register a download</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Select a file you've just downloaded. We compute its SHA-256 fingerprint and check it against the
-            entire registry before saving.
-          </p>
 
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+        {/* Register */}
+        <section className="rounded-2xl border border-border bg-gradient-card p-6 shadow-elegant">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground shadow-glow">
+              <FileUp className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Register a download</h2>
+              <p className="text-sm text-muted-foreground">
+                Pick a file — we compute its SHA-256 locally and check the registry instantly.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
             <input ref={fileRef} type="file" onChange={onPickFile} className="hidden" id="file-picker" />
-            <Button asChild disabled={hashing}>
+            <Button asChild disabled={hashing} className="bg-gradient-primary shadow-elegant hover:opacity-95">
               <label htmlFor="file-picker" className="cursor-pointer">
                 <FileUp className="mr-2 h-4 w-4" />
                 {hashing ? "Fingerprinting…" : "Select file"}
               </label>
             </Button>
-            <span className="text-xs text-muted-foreground">Files are hashed locally — never uploaded.</span>
+            <span className="text-xs text-muted-foreground">🔒 Files are hashed locally — never uploaded.</span>
           </div>
+
 
           {pending && (
             <div className="mt-6 space-y-4 rounded-lg border border-border bg-background p-4">
@@ -297,7 +307,8 @@ function Dashboard() {
         </section>
 
         {/* Registry */}
-        <section className="rounded-xl border border-border bg-card">
+        <section className="rounded-2xl border border-border bg-gradient-card shadow-elegant">
+
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
             <div>
               <h2 className="text-lg font-semibold">Registry</h2>
@@ -325,7 +336,7 @@ function Dashboard() {
                 const owner = profiles[d.user_id];
                 const mine = d.user_id === session.user.id;
                 return (
-                  <li key={d.id} className="flex flex-wrap items-start justify-between gap-3 p-4">
+                  <li key={d.id} className="flex flex-wrap items-start justify-between gap-3 p-4 transition-colors hover:bg-accent/40">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="truncate font-medium">{d.file_name}</span>
@@ -367,14 +378,15 @@ function StatCard({
   icon: Icon, label, value, tone = "default",
 }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; tone?: "default" | "warning" }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="group relative overflow-hidden rounded-2xl border border-border bg-gradient-card p-5 shadow-elegant transition-all hover:-translate-y-0.5 hover:shadow-glow">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
-        <div className={`flex h-7 w-7 items-center justify-center rounded-md ${tone === "warning" ? "bg-warning/15 text-warning" : "bg-accent text-accent-foreground"}`}>
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl transition-transform group-hover:scale-110 ${tone === "warning" ? "bg-warning/15 text-warning" : "bg-gradient-primary text-primary-foreground shadow-glow"}`}>
           <Icon className="h-4 w-4" />
         </div>
       </div>
-      <div className="mt-2 text-2xl font-semibold">{value}</div>
+      <div className="mt-3 text-3xl font-bold tracking-tight">{value}</div>
     </div>
   );
 }
+
