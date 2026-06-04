@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
-  AlertTriangle, CheckCircle2, Database, FileUp, LogOut, Trash2, Search, FileText, HardDrive, Users,
+  AlertTriangle, CheckCircle2, Database, FileUp, LogOut, Trash2, Search,
+  FileText, HardDrive, Users, UploadCloud, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,9 +44,32 @@ function formatBytes(n: number) {
   return `${(n / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 2)} ${units[i]}`;
 }
 
-async function sha256(file: File): Promise<string> {
-  const buf = await file.arrayBuffer();
-  const hash = await crypto.subtle.digest("SHA-256", buf);
+async function sha256(file: File, onProgress?: (pct: number) => void): Promise<string> {
+  const total = file.size;
+  const chunkSize = 1024 * 1024; // 1 MB
+  let offset = 0;
+  const chunks: ArrayBuffer[] = [];
+
+  while (offset < total) {
+    const blob = file.slice(offset, Math.min(offset + chunkSize, total));
+    const buf = await blob.arrayBuffer();
+    chunks.push(buf);
+    offset += chunkSize;
+    onProgress?.(Math.min((offset / total) * 100, 95));
+  }
+
+  // Concatenate all chunks
+  let totalLen = 0;
+  chunks.forEach((c) => (totalLen += c.byteLength));
+  const merged = new Uint8Array(totalLen);
+  let pos = 0;
+  chunks.forEach((c) => {
+    merged.set(new Uint8Array(c), pos);
+    pos += c.byteLength;
+  });
+
+  onProgress?.(100);
+  const hash = await crypto.subtle.digest("SHA-256", merged.buffer);
   return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
@@ -57,12 +81,15 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [hashing, setHashing] = useState(false);
+  const [hashProgress, setHashProgress] = useState(0);
   const [pending, setPending] = useState<{
     file: File; hash: string; duplicates: Download[];
   } | null>(null);
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
@@ -101,12 +128,11 @@ function Dashboard() {
     };
   }, [session]);
 
-  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processFile = useCallback(async (file: File) => {
     setHashing(true);
+    setHashProgress(0);
     try {
-      const hash = await sha256(file);
+      const hash = await sha256(file, (pct) => setHashProgress(pct));
       const duplicates = downloads.filter((d) => d.file_hash === hash);
       setPending({ file, hash, duplicates });
       if (duplicates.length) {
@@ -119,9 +145,37 @@ function Dashboard() {
       console.error(err);
     } finally {
       setHashing(false);
+      setHashProgress(0);
       if (fileRef.current) fileRef.current.value = "";
     }
+  }, [downloads]);
+
+  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    void processFile(file);
   };
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const onDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    void processFile(file);
+  }, [processFile]);
 
   const register = async () => {
     if (!pending || !session) return;
@@ -183,6 +237,8 @@ function Dashboard() {
   const me = profiles[session.user.id];
   const displayName = me?.display_name || session.user.email?.split("@")[0] || "User";
 
+  const dropActive = isDragging || hashing;
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[400px] bg-gradient-hero" />
@@ -213,7 +269,6 @@ function Dashboard() {
           <StatCard icon={HardDrive} label="Storage wasted" value={formatBytes(stats.wasted)} tone={stats.wasted ? "warning" : "default"} />
         </div>
 
-
         {/* Register */}
         <section className="rounded-2xl border border-border bg-gradient-card p-6 shadow-elegant">
           <div className="flex items-center gap-3">
@@ -223,33 +278,74 @@ function Dashboard() {
             <div>
               <h2 className="text-lg font-semibold">Register a download</h2>
               <p className="text-sm text-muted-foreground">
-                Pick a file — we compute its SHA-256 locally and check the registry instantly.
+                Drop a file anywhere below — we compute its SHA-256 locally and check the registry instantly.
               </p>
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center gap-3">
+          {/* Drop zone */}
+          <div
+            ref={dropRef}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            className={`mt-5 flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-all ${
+              dropActive
+                ? "border-primary bg-primary/5 scale-[1.01] shadow-glow"
+                : "border-border bg-background/50 hover:border-primary/40 hover:bg-accent/20"
+            }`}
+          >
             <input ref={fileRef} type="file" onChange={onPickFile} className="hidden" id="file-picker" />
-            <Button asChild disabled={hashing} className="bg-gradient-primary shadow-elegant hover:opacity-95">
-              <label htmlFor="file-picker" className="cursor-pointer">
-                <FileUp className="mr-2 h-4 w-4" />
-                {hashing ? "Fingerprinting…" : "Select file"}
+
+            {hashing ? (
+              <div className="flex w-full max-w-md flex-col items-center gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="w-full">
+                  <div className="mb-1.5 flex justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">Computing fingerprint…</span>
+                    <span className="text-primary">{Math.round(hashProgress)}%</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-primary/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-primary transition-all duration-200"
+                      style={{ width: `${hashProgress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <label htmlFor="file-picker" className="flex cursor-pointer flex-col items-center gap-3">
+                <div className={`flex h-14 w-14 items-center justify-center rounded-2xl transition-all ${dropActive ? "bg-primary text-primary-foreground shadow-glow scale-110" : "bg-secondary text-secondary-foreground"}`}>
+                  <UploadCloud className="h-7 w-7" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">
+                    {isDragging ? "Drop file to scan" : "Drag & drop a file here, or click to browse"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Any file type · hashed locally in your browser · never uploaded
+                  </p>
+                </div>
               </label>
-            </Button>
-            <span className="text-xs text-muted-foreground">🔒 Files are hashed locally — never uploaded.</span>
+            )}
           </div>
 
-
+          {/* Pending result */}
           {pending && (
             <div className="mt-6 space-y-4 rounded-lg border border-border bg-background p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="font-medium">{pending.file.name}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {formatBytes(pending.file.size)} · {pending.file.type || "unknown type"}
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
+                    <FileUp className="h-5 w-5" />
                   </div>
-                  <div className="mt-2 break-all font-mono text-xs text-muted-foreground">
-                    sha256: {pending.hash}
+                  <div>
+                    <div className="font-medium">{pending.file.name}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {formatBytes(pending.file.size)} · {pending.file.type || "unknown type"}
+                    </div>
+                    <div className="mt-2 break-all font-mono text-xs text-muted-foreground">
+                      sha256: {pending.hash}
+                    </div>
                   </div>
                 </div>
                 {pending.duplicates.length > 0 ? (
@@ -325,8 +421,28 @@ function Dashboard() {
           {loading ? (
             <div className="p-10 text-center text-sm text-muted-foreground">Loading registry…</div>
           ) : filtered.length === 0 ? (
-            <div className="p-10 text-center text-sm text-muted-foreground">
-              {downloads.length === 0 ? "No downloads registered yet. Add one above." : "No matches."}
+            <div className="flex flex-col items-center justify-center gap-3 p-10 text-center">
+              {downloads.length === 0 ? (
+                <>
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
+                    <UploadCloud className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Your registry is empty</p>
+                    <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+                      Drop a file into the register section above to compute its fingerprint and start tracking downloads. Every file you add is checked against duplicates instantly.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Search className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-sm font-medium text-foreground">No matches found</p>
+                  <p className="max-w-xs text-xs text-muted-foreground">
+                    Try adjusting your search — you can look up by filename, SHA-256 hash, or storage location.
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <ul className="divide-y divide-border">
@@ -389,4 +505,3 @@ function StatCard({
     </div>
   );
 }
-
