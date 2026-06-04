@@ -378,14 +378,15 @@ function StatCard({
   icon: Icon, label, value, tone = "default",
 }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; tone?: "default" | "warning" }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="group relative overflow-hidden rounded-2xl border border-border bg-gradient-card p-5 shadow-elegant transition-all hover:-translate-y-0.5 hover:shadow-glow">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
-        <div className={`flex h-7 w-7 items-center justify-center rounded-md ${tone === "warning" ? "bg-warning/15 text-warning" : "bg-accent text-accent-foreground"}`}>
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl transition-transform group-hover:scale-110 ${tone === "warning" ? "bg-warning/15 text-warning" : "bg-gradient-primary text-primary-foreground shadow-glow"}`}>
           <Icon className="h-4 w-4" />
         </div>
       </div>
-      <div className="mt-2 text-2xl font-semibold">{value}</div>
+      <div className="mt-3 text-3xl font-bold tracking-tight">{value}</div>
     </div>
   );
 }
+
