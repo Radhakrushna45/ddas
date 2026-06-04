@@ -215,23 +215,30 @@ function Dashboard() {
 
 
         {/* Register */}
-        <section className="rounded-xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold">Register a download</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Select a file you've just downloaded. We compute its SHA-256 fingerprint and check it against the
-            entire registry before saving.
-          </p>
+        <section className="rounded-2xl border border-border bg-gradient-card p-6 shadow-elegant">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground shadow-glow">
+              <FileUp className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Register a download</h2>
+              <p className="text-sm text-muted-foreground">
+                Pick a file — we compute its SHA-256 locally and check the registry instantly.
+              </p>
+            </div>
+          </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="mt-5 flex flex-wrap items-center gap-3">
             <input ref={fileRef} type="file" onChange={onPickFile} className="hidden" id="file-picker" />
-            <Button asChild disabled={hashing}>
+            <Button asChild disabled={hashing} className="bg-gradient-primary shadow-elegant hover:opacity-95">
               <label htmlFor="file-picker" className="cursor-pointer">
                 <FileUp className="mr-2 h-4 w-4" />
                 {hashing ? "Fingerprinting…" : "Select file"}
               </label>
             </Button>
-            <span className="text-xs text-muted-foreground">Files are hashed locally — never uploaded.</span>
+            <span className="text-xs text-muted-foreground">🔒 Files are hashed locally — never uploaded.</span>
           </div>
+
 
           {pending && (
             <div className="mt-6 space-y-4 rounded-lg border border-border bg-background p-4">
