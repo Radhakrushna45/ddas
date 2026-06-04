@@ -184,16 +184,18 @@ function Dashboard() {
   const displayName = me?.display_name || session.user.email?.split("@")[0] || "User";
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
+    <div className="relative min-h-screen overflow-hidden bg-background">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[400px] bg-gradient-hero" />
+
+      <header className="relative z-10 border-b border-border/60 bg-card/70 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
               <Database className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-sm font-semibold">DDAS</div>
-              <div className="text-xs text-muted-foreground">Signed in as {displayName}</div>
+              <div className="text-sm font-semibold tracking-tight">DDAS</div>
+              <div className="text-xs text-muted-foreground">Signed in as <span className="font-medium text-foreground">{displayName}</span></div>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={signOut}>
@@ -202,14 +204,15 @@ function Dashboard() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl space-y-6 px-6 py-8">
+      <main className="relative z-10 mx-auto max-w-7xl space-y-6 px-6 py-8">
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-4 animate-fade-up">
           <StatCard icon={FileText} label="Total downloads" value={stats.total.toString()} />
           <StatCard icon={CheckCircle2} label="Unique datasets" value={stats.unique.toString()} />
           <StatCard icon={AlertTriangle} label="Duplicate groups" value={stats.duplicateGroups.toString()} tone={stats.duplicateGroups ? "warning" : "default"} />
           <StatCard icon={HardDrive} label="Storage wasted" value={formatBytes(stats.wasted)} tone={stats.wasted ? "warning" : "default"} />
         </div>
+
 
         {/* Register */}
         <section className="rounded-xl border border-border bg-card p-6">
