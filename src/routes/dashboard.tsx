@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   AlertTriangle, CheckCircle2, Database, FileUp, LogOut, Trash2, Search, FileText, HardDrive, Users,
+  UploadCloud, FileCheck, Loader2, Fingerprint, ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
