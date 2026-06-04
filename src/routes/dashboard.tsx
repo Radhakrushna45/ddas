@@ -307,7 +307,8 @@ function Dashboard() {
         </section>
 
         {/* Registry */}
-        <section className="rounded-xl border border-border bg-card">
+        <section className="rounded-2xl border border-border bg-gradient-card shadow-elegant">
+
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
             <div>
               <h2 className="text-lg font-semibold">Registry</h2>
