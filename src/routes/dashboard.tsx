@@ -336,7 +336,7 @@ function Dashboard() {
                 const owner = profiles[d.user_id];
                 const mine = d.user_id === session.user.id;
                 return (
-                  <li key={d.id} className="flex flex-wrap items-start justify-between gap-3 p-4">
+                  <li key={d.id} className="flex flex-wrap items-start justify-between gap-3 p-4 transition-colors hover:bg-accent/40">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="truncate font-medium">{d.file_name}</span>
