@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   AlertTriangle, CheckCircle2, Database, FileUp, LogOut, Trash2, Search,
-  FileText, HardDrive, Users, UploadCloud, Loader2,
+  FileText, HardDrive, Users, UploadCloud, Loader2, Eye, Download as DownloadIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ type Download = {
   location: string | null;
   notes: string | null;
   created_at: string;
+  storage_path: string | null;
 };
 
 type Profile = { id: string; display_name: string | null; email: string | null };
@@ -179,6 +180,12 @@ function Dashboard() {
 
   const register = async () => {
     if (!pending || !session) return;
+    const path = `${session.user.id}/${pending.hash}-${Date.now()}-${pending.file.name}`;
+    const { error: upErr } = await supabase.storage.from("downloads").upload(path, pending.file, {
+      contentType: pending.file.type || "application/octet-stream",
+      upsert: false,
+    });
+    if (upErr) return toast.error(`Upload failed: ${upErr.message}`);
     const { error } = await supabase.from("downloads").insert({
       user_id: session.user.id,
       file_name: pending.file.name,
@@ -187,18 +194,43 @@ function Dashboard() {
       mime_type: pending.file.type || null,
       location: location || null,
       notes: notes || null,
+      storage_path: path,
     });
-    if (error) return toast.error(error.message);
-    toast.success("Download registered");
+    if (error) {
+      await supabase.storage.from("downloads").remove([path]);
+      return toast.error(error.message);
+    }
+    toast.success("Download registered and saved");
     setPending(null);
     setLocation("");
     setNotes("");
   };
 
-  const remove = async (id: string) => {
-    const { error } = await supabase.from("downloads").delete().eq("id", id);
+  const remove = async (d: Download) => {
+    if (d.storage_path) {
+      await supabase.storage.from("downloads").remove([d.storage_path]);
+    }
+    const { error } = await supabase.from("downloads").delete().eq("id", d.id);
     if (error) return toast.error(error.message);
     toast.success("Removed");
+  };
+
+  const view = async (d: Download) => {
+    if (!d.storage_path) return toast.error("No file stored for this entry");
+    const { data, error } = await supabase.storage
+      .from("downloads")
+      .createSignedUrl(d.storage_path, 60 * 10);
+    if (error || !data) return toast.error(error?.message || "Could not open file");
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const download = async (d: Download) => {
+    if (!d.storage_path) return toast.error("No file stored for this entry");
+    const { data, error } = await supabase.storage
+      .from("downloads")
+      .createSignedUrl(d.storage_path, 60 * 10, { download: d.file_name });
+    if (error || !data) return toast.error(error?.message || "Could not download file");
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
   const signOut = async () => {
@@ -474,11 +506,23 @@ function Dashboard() {
                       <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground/70">{d.file_hash}</div>
                       {d.notes && <div className="mt-1 text-sm text-foreground/80">{d.notes}</div>}
                     </div>
-                    {mine && (
-                      <Button variant="ghost" size="icon" onClick={() => remove(d.id)} aria-label="Delete">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <div className="flex shrink-0 items-center gap-1">
+                      {d.storage_path && (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => view(d)} aria-label="View" title="View file">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => download(d)} aria-label="Download" title="Download file">
+                            <DownloadIcon className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                      {mine && (
+                        <Button variant="ghost" size="icon" onClick={() => remove(d)} aria-label="Delete" title="Delete">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </li>
                 );
               })}
