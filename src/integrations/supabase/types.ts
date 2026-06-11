@@ -24,6 +24,7 @@ export type Database = {
           location: string | null
           mime_type: string | null
           notes: string | null
+          storage_path: string | null
           user_id: string
         }
         Insert: {
@@ -35,6 +36,7 @@ export type Database = {
           location?: string | null
           mime_type?: string | null
           notes?: string | null
+          storage_path?: string | null
           user_id: string
         }
         Update: {
@@ -46,6 +48,7 @@ export type Database = {
           location?: string | null
           mime_type?: string | null
           notes?: string | null
+          storage_path?: string | null
           user_id?: string
         }
         Relationships: []
