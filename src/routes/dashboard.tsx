@@ -516,6 +516,9 @@ function Dashboard() {
                       {d.notes && <div className="mt-1 text-sm text-foreground/80">{d.notes}</div>}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => setDetailsFile(d)} aria-label="Details" title="View details">
+                        <Info className="h-4 w-4" />
+                      </Button>
                       {d.storage_path && (
                         <>
                           <Button variant="ghost" size="icon" onClick={() => view(d)} aria-label="View" title="View file">
