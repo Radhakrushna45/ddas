@@ -506,11 +506,23 @@ function Dashboard() {
                       <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground/70">{d.file_hash}</div>
                       {d.notes && <div className="mt-1 text-sm text-foreground/80">{d.notes}</div>}
                     </div>
-                    {mine && (
-                      <Button variant="ghost" size="icon" onClick={() => remove(d.id)} aria-label="Delete">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <div className="flex shrink-0 items-center gap-1">
+                      {d.storage_path && (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => view(d)} aria-label="View" title="View file">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => download(d)} aria-label="Download" title="Download file">
+                            <DownloadIcon className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                      {mine && (
+                        <Button variant="ghost" size="icon" onClick={() => remove(d)} aria-label="Delete" title="Delete">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </li>
                 );
               })}
