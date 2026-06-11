@@ -541,6 +541,89 @@ function Dashboard() {
             </ul>
           )}
         </section>
+
+        {/* Details Sheet */}
+        <Sheet open={!!detailsFile} onOpenChange={(open) => !open && setDetailsFile(null)}>
+          <SheetContent className="sm:max-w-md">
+            {detailsFile && (
+              <>
+                <SheetHeader>
+                  <SheetTitle>File Details</SheetTitle>
+                  <SheetDescription>Review details before viewing or downloading.</SheetDescription>
+                </SheetHeader>
+                <div className="mt-6 space-y-6">
+                  <div className="space-y-4">
+                    <div>
+                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">File name</div>
+                      <div className="mt-1 break-all font-medium">{detailsFile.file_name}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Size</div>
+                        <div className="mt-1 font-medium">{formatBytes(Number(detailsFile.file_size))}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Type</div>
+                        <div className="mt-1 font-medium">{detailsFile.mime_type || "—"}</div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Uploaded</div>
+                      <div className="mt-1 font-medium">{new Date(detailsFile.created_at).toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</div>
+                      <div className="mt-1">
+                        {downloads.filter((x) => x.file_hash === detailsFile.file_hash).length > 1 ? (
+                          <Badge variant="outline" className="gap-1 border-warning/50 text-warning">
+                            <AlertTriangle className="h-3 w-3" /> Duplicate detected
+                          </Badge>
+                        ) : (
+                          <Badge className="gap-1 bg-success text-success-foreground hover:bg-success/90">
+                            <CheckCircle2 className="h-3 w-3" /> Unique
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    {detailsFile.location && (
+                      <div>
+                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Location</div>
+                        <div className="mt-1 font-mono text-sm text-muted-foreground">{detailsFile.location}</div>
+                      </div>
+                    )}
+                    {detailsFile.notes && (
+                      <div>
+                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Notes</div>
+                        <div className="mt-1 text-sm text-foreground">{detailsFile.notes}</div>
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">SHA-256</div>
+                      <div className="mt-1 break-all font-mono text-xs text-muted-foreground">{detailsFile.file_hash}</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    {detailsFile.storage_path && (
+                      <>
+                        <Button className="flex-1" onClick={() => { view(detailsFile); setDetailsFile(null); }}>
+                          <Eye className="mr-2 h-4 w-4" /> View
+                        </Button>
+                        <Button className="flex-1" variant="secondary" onClick={() => { download(detailsFile); setDetailsFile(null); }}>
+                          <DownloadIcon className="mr-2 h-4 w-4" /> Download
+                        </Button>
+                      </>
+                    )}
+                    {detailsFile.user_id === session?.user.id && (
+                      <Button variant="ghost" size="icon" onClick={() => { remove(detailsFile); setDetailsFile(null); }} aria-label="Delete" title="Delete">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </SheetContent>
+        </Sheet>
       </main>
     </div>
   );
