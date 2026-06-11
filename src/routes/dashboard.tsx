@@ -33,6 +33,7 @@ type Download = {
   location: string | null;
   notes: string | null;
   created_at: string;
+  storage_path: string | null;
 };
 
 type Profile = { id: string; display_name: string | null; email: string | null };
