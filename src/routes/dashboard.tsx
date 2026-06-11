@@ -180,6 +180,12 @@ function Dashboard() {
 
   const register = async () => {
     if (!pending || !session) return;
+    const path = `${session.user.id}/${pending.hash}-${Date.now()}-${pending.file.name}`;
+    const { error: upErr } = await supabase.storage.from("downloads").upload(path, pending.file, {
+      contentType: pending.file.type || "application/octet-stream",
+      upsert: false,
+    });
+    if (upErr) return toast.error(`Upload failed: ${upErr.message}`);
     const { error } = await supabase.from("downloads").insert({
       user_id: session.user.id,
       file_name: pending.file.name,
@@ -188,18 +194,43 @@ function Dashboard() {
       mime_type: pending.file.type || null,
       location: location || null,
       notes: notes || null,
+      storage_path: path,
     });
-    if (error) return toast.error(error.message);
-    toast.success("Download registered");
+    if (error) {
+      await supabase.storage.from("downloads").remove([path]);
+      return toast.error(error.message);
+    }
+    toast.success("Download registered and saved");
     setPending(null);
     setLocation("");
     setNotes("");
   };
 
-  const remove = async (id: string) => {
-    const { error } = await supabase.from("downloads").delete().eq("id", id);
+  const remove = async (d: Download) => {
+    if (d.storage_path) {
+      await supabase.storage.from("downloads").remove([d.storage_path]);
+    }
+    const { error } = await supabase.from("downloads").delete().eq("id", d.id);
     if (error) return toast.error(error.message);
     toast.success("Removed");
+  };
+
+  const view = async (d: Download) => {
+    if (!d.storage_path) return toast.error("No file stored for this entry");
+    const { data, error } = await supabase.storage
+      .from("downloads")
+      .createSignedUrl(d.storage_path, 60 * 10);
+    if (error || !data) return toast.error(error?.message || "Could not open file");
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const download = async (d: Download) => {
+    if (!d.storage_path) return toast.error("No file stored for this entry");
+    const { data, error } = await supabase.storage
+      .from("downloads")
+      .createSignedUrl(d.storage_path, 60 * 10, { download: d.file_name });
+    if (error || !data) return toast.error(error?.message || "Could not download file");
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
   const signOut = async () => {
