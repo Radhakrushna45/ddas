@@ -98,7 +98,6 @@ function Dashboard() {
   const [notes, setNotes] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-          );
   const dropRef = useRef<HTMLDivElement>(null);
   const [detailsFile, setDetailsFile] = useState<Download | null>(null);
 
