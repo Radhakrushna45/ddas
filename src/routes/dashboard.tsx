@@ -4,6 +4,7 @@ import type { Session } from "@supabase/supabase-js";
 import {
   AlertTriangle, CheckCircle2, Database, FileUp, LogOut, Trash2, Search,
   FileText, HardDrive, Users, UploadCloud, Loader2, Eye, Download as DownloadIcon,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
